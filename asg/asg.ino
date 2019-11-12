@@ -34,9 +34,9 @@
 #define PW_ENC_MAX      99
 
 /* Range multiplier values */
-#define  RANGE_200    1     /* 2Hz to 200Hz, resolution 2Hz */
-#define  RANGE_2K     2     /* 0.02KHz to 2.00Khz, resolution 20Hz  */
-#define  RANGE_20K    3     /* 0.2KHz to 20.0KHz, resolution 200hz */
+#define  RANGE_200    0    /* 2Hz to 200Hz, resolution 2Hz */
+#define  RANGE_2K     1     /* 0.02KHz to 2.00Khz, resolution 20Hz  */
+#define  RANGE_20K    2     /* 0.2KHz to 20.0KHz, resolution 200hz */
 
 /* Waveforms */
 #define SINE      0
@@ -57,12 +57,12 @@ uint32_t clock_frequency = 16000000;   // 16MHz clock
 uint32_t sample_rate = 131072;         // 131KHz sample rate
 
 /* Variables used by the waveform generator interrupt */
-uint16_t step = 100;
+uint16_t table_step = 100;
 uint16_t duty_cycle = 0x8000; 
 
 /* State variables for the controls */
-uint8_t freq = FREQ_ENC_MIN;
-uint8_t range = RANGE_200;
+uint8_t freq = 100;
+uint8_t range = RANGE_2K;
 uint8_t pulse_width = 50;
 uint8_t waveform = SINE;
 
@@ -87,6 +87,8 @@ void setup()
   pinMode(RANGE_BUTTON, INPUT);
   pinMode(WAVE_BUTTON,INPUT);
   pinMode(OUT_RANGE, INPUT_PULLUP);
+
+  PORTD = 0;
 
   /* Set 16 bit timer 1 to generate a periodic interrupt  when 
    *  it matches a preset value.
@@ -153,9 +155,9 @@ void loop()
     last_range = range;
 
     cli();
-    step = last_freq * 10^last_range;
+    table_step = last_freq/2 * pow(10,last_range);
     sei();
-
+    
     switch (last_range) {
       case RANGE_200:
         snprintf(str, sizeof(str), "%4u Hz ", last_freq);
@@ -181,10 +183,10 @@ void loop()
   if ((voltage != last_voltage) || (voltage_range != last_volt_range)) {
     voltage = map(voltage, 0, 1024, 0, 100);
     if (voltage_range == VOLT_RANGE_1V) {
-      snprintf(str, sizeof(str), "%1u.%02u V", voltage/100, last_freq % 100);
+      snprintf(str, sizeof(str), "%1li.%02li V", voltage/100, voltage % 100);
     }
     else {
-      snprintf(str, sizeof(str), "%2u.%1u V", voltage/10, voltage % 10);
+      snprintf(str, sizeof(str), "%2li.%1li V", voltage/10, voltage % 10);
     }
 
     lcd.setCursor(10,0);
@@ -210,7 +212,7 @@ ISR(TIMER1_COMPA_vect)
   static uint16_t index = 0;
   uint8_t value;
  
-  index += step;
+  index += table_step;
 
   switch (waveform) {
 

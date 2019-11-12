@@ -41,7 +41,7 @@ int main(int agrc, char *argv[])
   
   for (i = 0; i < TABLE_SIZE; i++) {
     s = sin(angle);
-    value = s * 128 + 128;
+    value = s * 127 + 128;
     fprintf(file, " %i, ", (int)value);
     if (++cnt == 8) {
       fprintf(file, "\n  ");
